@@ -22,16 +22,12 @@
 #include "server_login.h"
 #include "array_list.h"
 
-int main(int argc, char**argv){
-	
+int main(int argc, char**argv){	
 	int vflags;
 	char portNumber[100];
 	char MOTD[1000];
 	char accountFile[1000];
-	fd_set readfds;
-	FD_ZERO(&readfds);
-	FD_SET(0,&readfds);
-	
+		
 	if(init_server( argc, argv,&vflags, portNumber, MOTD,accountFile)==0){
 		exit(EXIT_FAILURE);
 	}	
@@ -59,17 +55,17 @@ int main(int argc, char**argv){
 	}
 	else 
 		printf("successfully bind\n");
-	if(listen(welcomeSocket,1024)==-1){
+	if(listen(welcomeSocket,100)==-1){ //max length of pending connections
 		perror("failed to listen\n");
 		return 1;
 	}
 	else
 		printf("now listening\n");
 		
-	//create accept thread
+	//create accept thread, pass the welcomeSocket here 
 	struct acceptThreadArgs actThreadArg;
 	actThreadArg.welcomeSocket=welcomeSocket;
-	actThreadArg.communicateSocket=-1;	
+	actThreadArg.communicateSocket=-1;	// communicateSocket is not here yet
 	strcpy(actThreadArg.MOTD,MOTD);
 	strcpy(actThreadArg.accountFile,accountFile);
 	
@@ -77,15 +73,17 @@ int main(int argc, char**argv){
 	// set up datebase 
 	if(setUpDatabase(db)==0) 
 		return 0;
-	
+	/*not sure about what those code are doing? */
 	sigset_t fSigSet;
 	sigemptyset(&fSigSet);
 	sigaddset(&fSigSet,SIGUSR1);
-
+	// block SIGUSRI signal 
 	pthread_sigmask(SIG_BLOCK, &fSigSet, 0);
 	
-	pthread_create(&tid, NULL,thread_accept,(void*)(&actThreadArg));
+	pthread_create(&tid, NULL,thread_accept,(void*)(&actThreadArg)); // pass the actThreadArg 
 	pthread_setname_np(tid,"ACCEPT THREAD");
+	fd_set readfds;
+	FD_ZERO(&readfds);
 	FD_SET(0,&readfds);
 	FD_SET(welcomeSocket,&readfds);
 	if(select(welcomeSocket+1,&readfds,0,0,0)<0){
@@ -111,6 +109,7 @@ int main(int argc, char**argv){
 	}
 	if(FD_ISSET(welcomeSocket,&readfds)){
 		pthread_kill(tid, SIGUSR1);
+		printf("welcome socket is ready?");
 		sleep(10);
 	}
 	pthread_join(tid,NULL);

@@ -7,8 +7,7 @@ struct acceptThreadArgs{
 		int communicateSocket;
 		char MOTD[100];
 		char accountFile[100];
-		//sqlite3 * db;
-	
+		//sqlite3 * db;	
 };
 void * thread_login(void* vargp);
 
