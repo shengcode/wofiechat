@@ -22,12 +22,19 @@
 #include "server_login.h"
 #include "array_list.h"
 
+#define BUFSIZE 1024
+
 int main(int argc, char**argv){	
 	int vflags;
 	char portNumber[100];
 	char MOTD[1000];
 	char accountFile[1000];
-		
+	char buf[BUFSIZE]; /* message buffer */
+	int optval; /* flag value for setsockopt */
+	int n; /* message byte size */
+	fd_set readfds;
+	connectcnt=0;
+	
 	if(init_server( argc, argv,&vflags, portNumber, MOTD,accountFile)==0){
 		exit(EXIT_FAILURE);
 	}	
@@ -36,15 +43,14 @@ int main(int argc, char**argv){
 	printf("the port number is %ld\n",converted_portNumber);
 	int welcomeSocket;	
 	struct sockaddr_in SA;
-	pthread_t tid;
-	
-	int number_of_success_login=0;
-
+	pthread_t tid;	
 	welcomeSocket=socket(AF_INET,SOCK_STREAM,0);
 	if(welcomeSocket==-1) {perror("failed to create a good socket\n"); return 1;}	
 	memset((void*)&SA,0,sizeof(SA));
 	const char src[20]="127.0.0.1";	
-	
+	/* so that we don't need to wait for 20 seconds */
+	optval = 1;
+	setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));	
 	SA.sin_family=AF_INET;	//initialize structure
 	//SA.sin_port=htons(12000);	
 	SA.sin_port=htons((uint16_t) converted_portNumber);
@@ -53,69 +59,34 @@ int main(int argc, char**argv){
 		perror("failed to bind the server\n");
 		return 1;
 	}
-	else 
-		printf("successfully bind\n");
+	else printf("successfully bind\n");
 	if(listen(welcomeSocket,100)==-1){ //max length of pending connections
 		perror("failed to listen\n");
 		return 1;
 	}
 	else
 		printf("now listening\n");
-		
-	//create accept thread, pass the welcomeSocket here 
-	struct acceptThreadArgs actThreadArg;
-	actThreadArg.welcomeSocket=welcomeSocket;
-	actThreadArg.communicateSocket=-1;	// communicateSocket is not here yet
-	strcpy(actThreadArg.MOTD,MOTD);
-	strcpy(actThreadArg.accountFile,accountFile);
+		printf("server>>");
+	while (1){
+		FD_ZERO(&readfds);          /* initialize the fd set */
+		FD_SET(welcomeSocket, &readfds); /* add socket fd */
+		FD_SET(0, &readfds);        /* add stdin fd (0) */
+		if (select(parentfd+1, &readfds, 0, 0, 0) < 0) {
+			error("ERROR in select");
+		}
+		if (FD_ISSET(0, &readfds)) {
+			fgets(buf, BUFSIZE, stdin);
+			serverReady(char* command);
+		}    
+		if (FD_ISSET(welcomeSocket, &readfds)) {
+			clientReady();			
+		}
+	}
 	
-	sqlite3 *db;
-	// set up datebase 
-	if(setUpDatabase(db)==0) 
-		return 0;
-	/*not sure about what those code are doing? */
-	sigset_t fSigSet;
-	sigemptyset(&fSigSet);
-	sigaddset(&fSigSet,SIGUSR1);
-	// block SIGUSRI signal 
-	pthread_sigmask(SIG_BLOCK, &fSigSet, 0);
-	
-	pthread_create(&tid, NULL,thread_accept,(void*)(&actThreadArg)); // pass the actThreadArg 
-	pthread_setname_np(tid,"ACCEPT THREAD");
-	fd_set readfds;
-	FD_ZERO(&readfds);
-	FD_SET(0,&readfds);
-	FD_SET(welcomeSocket,&readfds);
-	if(select(welcomeSocket+1,&readfds,0,0,0)<0){
-		perror("ERROR in select");
-	}
-	if(FD_ISSET(0,&readfds)){
-		// standin is ready read from standin 
-		char readStandinBuffer[100];
-		fgets(readStandinBuffer, 100, stdin);
-		char users[100]="/users";
-		char help[100]="/help";
-		char shutdownString[100]="/shutdown";
-		if(strcmp(readStandinBuffer,users)==0){
-			printf("this is the /users command from stdin\n");
-		}
-		else if(strcmp(readStandinBuffer,help)==0){
-			printf("this is the /help command from stdin\n");
-		}
-		else if(strcmp(readStandinBuffer,shutdownString)==0){
-			printf("this is the /shutdown command from stdin\n");
-		}
-		
-	}
-	if(FD_ISSET(welcomeSocket,&readfds)){
-		pthread_kill(tid, SIGUSR1);
-		printf("welcome socket is ready?");
-		sleep(10);
-	}
-	pthread_join(tid,NULL);
-	return 1;
-}
 
+	
+	
+	
 void * thread_accept(void* vargp){
 	//put itself to sleep 
 	sigset_t fSigSet;
@@ -169,10 +140,35 @@ long int convert_portNumber(char* serverPort){
 	}
 	return returnValue;
 }
+void serverReady(char* command){
+	if(strcmp(command,"/users")==0){
+			printf("this is the /users command from stdin\n");
+	}
+	else if(strcmp(command, "/help")==0){
+		printf("this is the /help command from stdin\n");
+	}
+	else if(strcmp(command,"/shutdown")==0){
+		printf("this is the /shutdown command from stdin\n");
+	}
+	else{
+		printf("server>>");
+	}
+}
+
+void clientReady(){
+	clientfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen);
+	if (clientfd < 0) error("ERROR on accept client connection"); return; 
+	connectcnt++;
+	sqlite3 *db;
+	if(setUpDatabase(db)==0) return;
+	bzero(buf, BUFSIZE);
+	n = read(clientfd, buf, BUFSIZE);
+	if (n < 0) error("ERROR reading from socket");
+}
+
+
 
 int setUpDatabase(sqlite3 *db){
-	// try to connect to database 
-	
 	char *zErrMsg=0;
 	int rc;
 	char* sql;	
@@ -201,6 +197,7 @@ int setUpDatabase(sqlite3 *db){
 	sqlite3_close(db);
 	return 1;
 }
+
 static int createTable_callback(void*NotUser, int argc, char**argv,char**azColName){
 	int i;
 	for(i=0;i<argc;i++){
@@ -233,3 +230,4 @@ int createTable(sqlite3 *db){
 	fprintf(stdout, "Table created successfully\n");
 	return 1;
 }
+
