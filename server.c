@@ -33,7 +33,7 @@ int main(int argc, char**argv){
 	int optval; /* flag value for setsockopt */
 	int n; /* message byte size */
 	fd_set readfds;
-	connectcnt=0;
+	int connectcnt=0;
 	
 	if(init_server( argc, argv,&vflags, portNumber, MOTD,accountFile)==0){
 		exit(EXIT_FAILURE);
@@ -50,7 +50,7 @@ int main(int argc, char**argv){
 	const char src[20]="127.0.0.1";	
 	/* so that we don't need to wait for 20 seconds */
 	optval = 1;
-	setsockopt(parentfd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));	
+	setsockopt(welcomeSocket, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));	
 	SA.sin_family=AF_INET;	//initialize structure
 	//SA.sin_port=htons(12000);	
 	SA.sin_port=htons((uint16_t) converted_portNumber);
@@ -67,56 +67,24 @@ int main(int argc, char**argv){
 	else
 		printf("now listening\n");
 		printf("server>>");
+	FD_ZERO(&readfds);          /* initialize the fd set */
+	FD_SET(welcomeSocket, &readfds); /* add socket fd */
+	FD_SET(0, &readfds);        /* add stdin fd (0) */
 	while (1){
-		FD_ZERO(&readfds);          /* initialize the fd set */
-		FD_SET(welcomeSocket, &readfds); /* add socket fd */
-		FD_SET(0, &readfds);        /* add stdin fd (0) */
-		if (select(parentfd+1, &readfds, 0, 0, 0) < 0) {
-			error("ERROR in select");
+		
+		if (select(welcomeSocket+1, &readfds, 0, 0, 0) < 0) {
+			printf("ERROR in select");
 		}
 		if (FD_ISSET(0, &readfds)) {
 			fgets(buf, BUFSIZE, stdin);
-			serverReady(char* command);
+			serverReady(buf);
 		}    
 		if (FD_ISSET(welcomeSocket, &readfds)) {
-			clientReady();			
+			printf("new clients comming\n");
+			clientReady(MOTD, accountFile,welcomeSocket,connectcnt);			
 		}
 	}
-	
-
-	
-	
-	
-void * thread_accept(void* vargp){
-	//put itself to sleep 
-	sigset_t fSigSet;
-	sigemptyset(&fSigSet);
-	sigaddset(&fSigSet,SIGUSR1);
-	int nSig;
-	printf("nSig is %d\n",nSig);
-	printf("%d\n", sigwait(&fSigSet,&nSig));
-	printf("nSig is %d\n",nSig);
-	
-	struct acceptThreadArgs* actThreadArg = (struct acceptThreadArgs*) vargp;
-	int welcomeSocket=actThreadArg->welcomeSocket;
-	struct sockaddr_in SA;
-	pthread_t tid;
-	socklen_t socketLength=sizeof(struct sockaddr);
-	while(1){
-		if((actThreadArg->communicateSocket=accept(welcomeSocket,(struct sockaddr*)&SA,&socketLength))==-1){
-			perror("failed to accept the connection from client\n");
-			exit(EXIT_FAILURE);
-		}
-		printf("the communicate socket is %d\n",actThreadArg->communicateSocket);
-		//pthread_create(&tid,NULL,thread_login,&(actThreadArg->communicateSocket));
-		pthread_create(&tid,NULL,thread_login,vargp);
-		pthread_setname_np(tid,"LOGIN THREAD");
-		puts("connection accepted\n");
-		//pthread_join(tid,NULL);
-		
-	}
-	
-
+			
 }
 
 
@@ -141,29 +109,45 @@ long int convert_portNumber(char* serverPort){
 	return returnValue;
 }
 void serverReady(char* command){
-	if(strcmp(command,"/users")==0){
+	if(strcmp(command,"/users\n")==0){
 			printf("this is the /users command from stdin\n");
+			
 	}
-	else if(strcmp(command, "/help")==0){
+	else if(strcmp(command, "/help\n")==0){
 		printf("this is the /help command from stdin\n");
+		
 	}
-	else if(strcmp(command,"/shutdown")==0){
+	else if(strcmp(command,"/shutdown\n")==0){
 		printf("this is the /shutdown command from stdin\n");
+		
 	}
-	else{
-		printf("server>>");
+	else if(strcmp(command,"/accts\n")==0){
+		printf("this is the /accts command from stdin\n");
+		
 	}
+	printf("server>>");	
 }
 
-void clientReady(){
-	clientfd = accept(parentfd, (struct sockaddr *) &clientaddr, &clientlen);
-	if (clientfd < 0) error("ERROR on accept client connection"); return; 
+void clientReady(char* MOTD, char* accountFile, int welcomeSocket,int connectcnt){
+	pthread_t tid;
+	struct sockaddr_in SA;
+	socklen_t socketLength=sizeof(struct sockaddr);
+	int clientfd = accept(welcomeSocket, (struct sockaddr *) &SA, &socketLength);
+	if (clientfd < 0) {
+		printf("ERROR on accept client connection"); 
+		return; 
+	}
 	connectcnt++;
 	sqlite3 *db;
 	if(setUpDatabase(db)==0) return;
-	bzero(buf, BUFSIZE);
-	n = read(clientfd, buf, BUFSIZE);
-	if (n < 0) error("ERROR reading from socket");
+	struct acceptThreadArgs actThreadArg;
+	actThreadArg.communicateSocket=clientfd;	
+	strcpy(actThreadArg.MOTD,MOTD);
+	strcpy(actThreadArg.accountFile,accountFile);	
+	
+	pthread_create(&tid,NULL,thread_login,(void*)(&actThreadArg));
+	pthread_setname_np(tid,"LOGIN THREAD");
+	puts("connection accepted\n");
 }
 
 

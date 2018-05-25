@@ -17,8 +17,7 @@ void * thread_login(void* vargp){
 	struct acceptThreadArgs* loginThreadArg = (struct acceptThreadArgs*) vargp;
 	int communicateSocket= loginThreadArg->communicateSocket; // communicateSocket is one of the argument that is passed in
 	strcpy(MOTD,loginThreadArg->MOTD);
-	strcpy(accountFile, loginThreadArg->accountFile);
-	
+	strcpy(accountFile, loginThreadArg->accountFile);	
 	
 	printf("the motd is %s\n",MOTD);
 	printf("the account file is %s\n",accountFile);
