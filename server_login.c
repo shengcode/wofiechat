@@ -250,6 +250,8 @@ void saveNewUsernameAndPassword(char*name, char*password){
 	strcat(sql,password);
 	strcat(sql,singleQuote);
 	char isLogin[10]=",1";
+	strcat(sql,isLogin);
+	//strcat(sql,comma);
 	char endBracket[10]=");";
 	strcat(sql,endBracket);
 /* Execute SQL statement */
@@ -332,8 +334,9 @@ int receivePASS(int communicateSocket,char* messageReceive,char*password){
 			return -1;
 	}
 	if(strncmp(messageToCompare,messageReceive,4)==0){
-		messageReceive[strlen(messageReceive)-4]=='\0';
-		strcpy(password,messageReceive);
+		//messageReceive[strlen(messageReceive)-4]='\0';
+		int passLength=strlen(messageReceive)-4-4;
+		strncpy(password,messageReceive+4,passLength);
 		return 1;
 	}
 	perror("not the message I expeceted\n");
