@@ -262,7 +262,7 @@ int oldUserNameNotTakenAndExist(int client_socket,char*name){
 	if (readCharacter(client_socket, messageReceive)==-1) return -1;
 	char badPass[100]="ERR 02 BAD PASSWORD";
 	strcat(badPass,"\r\n\r\n");
-	char goodPass[100]="PASS";
+	char goodPass[100]="SSAP";
 	strcat(goodPass,"\r\n\r\n");
 	if (strcmp(badPass,messageReceive)==0){
 			return oldUserNameNotValidPassWord(client_socket,messageReceive);

@@ -1,6 +1,11 @@
 #ifndef SERVER_LOGIN_H
 #define SERVER_LOGIN_H
 #include "array_list.h"
+typedef struct {
+	char username[20];
+	char password[20];
+	int login;
+}userInfor;
 void * thread_login(void* vargp);
 int receiveWOLFIE(int communicateSocket,char* messageReceive);
 int sendEIFLOW(int communicateSocket);
@@ -19,6 +24,7 @@ int sendMotd(int communicateSocket,char*MOTD);
 int sendErr02Bye(int communicateSocket);
 int sendAuth(int communicateSocket, char*name);
 int receivePASS(int communicateSocket,char* messageReceive,char*password);
+static int checkIScorrectPassword_callBack(void*user, int argc, char**argv,char**azColName);
 int IScorrectPassword(char* name, char* password);
 int sendSSAPandHi(int communicateSocket,char* name);
 int sendErr01Bye(int communicateSocket);

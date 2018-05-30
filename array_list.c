@@ -40,7 +40,7 @@ void delete(Arraylist* arraylist, int delete_position){
 }
 
 void* getIthElement(Arraylist*arraylist,int ith_element){ 
-	return arraylist->data+(ith_element-1)*arraylist->element_size;
+	return (arraylist->data)+(ith_element-1)*(arraylist->element_size);
 }
 
 void freeArrayList(Arraylist* arraylist){
@@ -48,16 +48,19 @@ void freeArrayList(Arraylist* arraylist){
 }
 
 void printCharArraylist(Arraylist* arraylist){
-	for(int i=1;i<=arraylist->size;i++)
+	int i;
+	for(i=1;i<=arraylist->size;i++)
 		printf("the %dth element is %c\n", i,*((char*)getIthElement(arraylist,i)));
 
 }
 
 void printCharPointArraylist(Arraylist* arraylist){
-	for(int i=1;i<=arraylist->size;i++)
+	int i;
+	for(i=1;i<=arraylist->size;i++)
 		printf("the %dth elment is %s\n",i,  *((char**)getIthElement(arraylist,i)));
 }
 void printIntArraylist(Arraylist* arraylist){
-	for(int i=1;i<=arraylist->size;i++)
+	int i;
+	for(i=1;i<=arraylist->size;i++)
 		printf("the %dth element is %d\n",i, *((int *)getIthElement(arraylist,i)));
 }
