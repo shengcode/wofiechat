@@ -18,6 +18,4 @@ void* getIthElement(Arraylist*arraylist,int ith_element);
 void printCharPointArraylist(Arraylist* arraylist);
 void printCharArraylist(Arraylist* arraylist);
 void printIntArraylist(Arraylist* arraylist);
-
-
 #endif

@@ -70,21 +70,19 @@ int main(int argc, char**argv){
 	FD_ZERO(&readfds);          /* initialize the fd set */
 	FD_SET(welcomeSocket, &readfds); /* add socket fd */
 	FD_SET(0, &readfds);        /* add stdin fd (0) */
-	while (1){
-		
+	while (1){		
 		if (select(welcomeSocket+1, &readfds, 0, 0, 0) < 0) {
 			printf("ERROR in select");
 		}
-		if (FD_ISSET(0, &readfds)) {
+		else if (FD_ISSET(0, &readfds)) {
 			fgets(buf, BUFSIZE, stdin);
 			serverReady(buf);
 		}    
-		if (FD_ISSET(welcomeSocket, &readfds)) {
+		else if (FD_ISSET(welcomeSocket, &readfds)) {
 			printf("new clients comming\n");
 			clientReady(MOTD, accountFile,welcomeSocket,connectcnt);			
 		}
-	}
-			
+	}			
 }
 
 

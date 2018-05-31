@@ -3,9 +3,6 @@
 #include<string.h>
 #include"array_list.h"
 
-
-
-
 void init_arraylist(Arraylist* arraylist, int element_size){
 	arraylist->size=0;
 	arraylist->capacity=INIT_CAP;
