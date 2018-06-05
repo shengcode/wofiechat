@@ -49,8 +49,8 @@ int main(int argc, char**argv){
 	memset((void*)&SA,0,sizeof(SA));
 	const char src[20]="127.0.0.1";	
 	/* so that we don't need to wait for 20 seconds */
-	optval = 1;
-	setsockopt(welcomeSocket, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));	
+	/*optval = 1;
+	setsockopt(welcomeSocket, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval , sizeof(int));*/
 	SA.sin_family=AF_INET;	//initialize structure
 	//SA.sin_port=htons(12000);	
 	SA.sin_port=htons((uint16_t) converted_portNumber);
