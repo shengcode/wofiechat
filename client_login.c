@@ -297,6 +297,13 @@ int oldUserNameValidPassWord(int client_socket, char*messageReceive, char*name){
 	}
 	else if (strncmp(messageToCompare, messageReceive,4)==0){
 		printf("successfully login in now inside the small function !!!!\n");
+		printf("the MOTD message is:\n");
+		int messageLength=strlen(messageReceive);
+		char* motoMessage= malloc(messageLength-8+1);
+		strncpy(motoMessage,messageReceive+4,messageLength-8);
+		motoMessage[messageLength-8]='\0';
+		printf("%s\n",motoMessage);
+		free(motoMessage);
 		return 1;  
 	}
 	

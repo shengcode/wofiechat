@@ -23,6 +23,9 @@
 #include "array_list.h"
 
 #define BUFSIZE 1024
+Arraylist *Active_Users=NULL;
+
+
 
 int main(int argc, char**argv){	
 	int vflags;
@@ -34,6 +37,9 @@ int main(int argc, char**argv){
 	int n; /* message byte size */
 	fd_set readfds;
 	int connectcnt=0;
+	
+	Active_Users=malloc(sizeof(Arraylist));
+	init_arraylist(Active_Users,sizeof(active_userInfor));   
 	
 	if(init_server( argc, argv,&vflags, portNumber, MOTD,accountFile)==0){
 		exit(EXIT_FAILURE);
@@ -65,8 +71,8 @@ int main(int argc, char**argv){
 		return 1;
 	}
 	else
-		printf("now listening\n");
-		printf("server>>");
+	printf("now listening\n");
+	printf("server>>");
 	FD_ZERO(&readfds);          /* initialize the fd set */
 	FD_SET(welcomeSocket, &readfds); /* add socket fd */
 	FD_SET(0, &readfds);        /* add stdin fd (0) */
@@ -74,11 +80,11 @@ int main(int argc, char**argv){
 		if (select(welcomeSocket+1, &readfds, 0, 0, 0) < 0) {
 			printf("ERROR in select");
 		}
-		else if (FD_ISSET(0, &readfds)) {
+		if (FD_ISSET(0, &readfds)) {
 			fgets(buf, BUFSIZE, stdin);
 			serverReady(buf);
 		}    
-		else if (FD_ISSET(welcomeSocket, &readfds)) {
+		if (FD_ISSET(welcomeSocket, &readfds)) {
 			printf("new clients comming\n");
 			clientReady(MOTD, accountFile,welcomeSocket,connectcnt);			
 		}
@@ -117,7 +123,14 @@ void serverReady(char* command){
 	}
 	else if(strcmp(command,"/shutdown\n")==0){
 		printf("this is the /shutdown command from stdin\n");
-		
+		//also need to free every element in the Active_Users.
+		//TODO ...need double check 
+		int i;
+		for(i=1;i<=Active_Users->size;i++){
+			free(getIthElement(Active_Users,i));
+		}
+		freeArrayList(Active_Users);
+		free(Active_Users);		
 	}
 	else if(strcmp(command,"/accts\n")==0){
 		printf("this is the /accts command from stdin\n");

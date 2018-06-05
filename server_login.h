@@ -6,6 +6,11 @@ typedef struct {
 	char password[20];
 	int login;
 }userInfor;
+typedef struct {
+	char username[20];
+	char password[20];
+	int fd;
+}active_userInfor;
 void * thread_login(void* vargp);
 int receiveWOLFIE(int communicateSocket,char* messageReceive);
 int sendEIFLOW(int communicateSocket);

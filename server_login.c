@@ -11,6 +11,9 @@
 #include "array_list.h"
 #include "utility.h"
 
+extern Arraylist* Active_Users;
+
+
 void * thread_login(void* vargp){
 	char MOTD[100];
 	char accountFile[100];
@@ -41,9 +44,12 @@ void * thread_login(void* vargp){
 					continueValue=sendSSAPWENandHi(communicateSocket,name);
 					continueValue=sendMotd(communicateSocket,MOTD);
 					if (continueValue==1){
-						// login successfully
+						active_userInfor* active_user=malloc(sizeof(active_userInfor));
+						strcpy(active_user->username,name);
+						strcpy(active_user->password,password);
+						active_user->fd=communicateSocket;
+						append(Active_Users, active_user);
 						printf("new user login successfully\n");
-						//Do whatever is needed to do 
 						continue;
 					}
 				}
@@ -55,6 +61,7 @@ void * thread_login(void* vargp){
 			}
 			if(ISnameExist(name)){
 				continueValue= sendErr00Bye(communicateSocket);	
+				// should receive a Bye From Client also 
 				//disconnected;
 			}
 		}
@@ -71,8 +78,12 @@ void * thread_login(void* vargp){
 				continueValue=receivePASS(communicateSocket,messageReceive,password);
 				if(IScorrectPassword(name,password)){
 					continueValue=sendSSAPandHi(communicateSocket,name);
-					//login successfully
-					// here need to update database so that  is_login is 1 
+					active_userInfor* active_user=malloc(sizeof(active_userInfor));
+					strcpy(active_user->username,name);
+					strcpy(active_user->password,password);
+					active_user->fd=communicateSocket;
+					append(Active_Users, active_user);
+					// add to the login array list 					
 					sendMotd(communicateSocket,MOTD);
 					printf("login successfully\n");
 				}
