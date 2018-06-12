@@ -61,7 +61,6 @@ void * thread_login(void* vargp){
 			}
 			if(ISnameExist(name)){
 				continueValue= sendErr00Bye(communicateSocket);	
-				// should receive a Bye From Client also 
 				//disconnected;
 			}
 		}
@@ -70,6 +69,7 @@ void * thread_login(void* vargp){
 				//old user dose not exist 
 				continueValue=sendErr01Bye(communicateSocket);
 				//disconnect here
+				close(communicateSocket);
 				
 			}
 			else if(ISnameExist(name)){

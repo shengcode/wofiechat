@@ -11,7 +11,7 @@
 #include "init_client.h"
 #include "client_login.h"
 #include "utility.h"
-
+#define BUFSIZE 1024
 
 int client_login(int client_socket,char*name, int cflags){
 	//-1 disconnect -10 abnormal message from server 0 failed login 1 good 
@@ -277,6 +277,7 @@ int oldUserNameNotTakenAndExist(int client_socket,char*name){
 	return 1;
 }
 int oldUserNameValidPassWord(int client_socket, char*messageReceive, char*name){
+	char buf[BUFSIZE];
 	if (readCharacter(client_socket, messageReceive)==-1) return -1;
 	char* hi="HI";
 	char * endNode="\r\n\r\n";	
@@ -304,10 +305,110 @@ int oldUserNameValidPassWord(int client_socket, char*messageReceive, char*name){
 		motoMessage[messageLength-8]='\0';
 		printf("%s\n",motoMessage);
 		free(motoMessage);
+		fd_set readfds;
+		FD_ZERO(&readfds);          /* initialize the fd set */
+		FD_SET(client_socket, &readfds); /* add client_socket fd */
+		FD_SET(0, &readfds);        /* add stdin fd (0) */
+		while (1){		
+			if (select(client_socket+1, &readfds, 0, 0, 0) < 0) {
+			printf("ERROR in select");
+		}
+			if (FD_ISSET(0, &readfds)) {
+			fgets(buf, BUFSIZE, stdin);
+			StdinReady(buf,client_socket,name);
+		}    
+			if (FD_ISSET(client_socket, &readfds)) {
+			printf("message From server \n");
+			//clientReady(MOTD, accountFile,welcomeSocket,connectcnt);			
+		}
+	}		
+		
 		return 1;  
 	}
 	
 }
+
+void StdinReady(char*command, int client_socket,char*name){
+	char* splitedMessage[20];
+	int j;
+	for(j=0;j<20;j++){
+		splitedMessage[j]=0;
+	}
+	splitTheMessage(command, splitedMessage);
+	int i;
+	int count=0;
+	for (i = 0; i < 20; i++) {
+		if(splitedMessage[i]!=NULL){
+		count=count+1;
+        printf("%s\n", splitedMessage[i]);
+		}
+	}
+	printf("the number of arguments is %d",count);
+	int lastLength=strlen(splitedMessage[count-1]);
+	splitedMessage[count-1][lastLength-2]='\0';
+	
+	
+	if(strcmp(command,"/logout\n")==0){
+			printf("this is the /logout command from stdin\n");
+			
+	}
+	else if(strcmp(command, "/help\n")==0){
+		printf("this is the /help command from stdin\n");
+		
+	}
+	else if(strcmp(command,"/listu\n")==0){
+		printf("this is the /listu command from stdin\n");
+		printf("it ask the server who has been connected\n");		
+	}
+	else if(strcmp(command,"/time\n")==0){
+		printf("this is the /time command from stdin\n");		
+	}
+	else if(strcmp(command,"/logout\n")==0){
+		printf("this is the /logout command from stdin\n");
+	}
+	else if(strcmp(splitedMessage[0], "/chat")==0){
+		printf("this is the /chat command from standin\n");	
+		chatCommand(splitedMessage,count,name);
+	}
+	printf("client>>");	
+	
+}
+void chatCommand(char* splitedMessage[], int count, char* name){
+	int sendSize;
+	char messageTosend[100]="",messageReceive[1000]="";
+	if(count<3){
+		printf("you have to provide the client username and the message\n");
+		return;
+	}
+	char* MSG="MSG";
+	char* Space=" ";
+	char* EndNote="\r\n\r\n";
+	strcpy(messageTosend, MSG);
+	strcat(messageTosend,Space);
+	strcat(messageTosend,name);
+	strcat(messageTosend,Space);
+	int i;
+	for(i=1;i<count;i++){
+		strcat(messageTosend,splitedMessage[i]);
+		strcat(messageTosend,Space);		
+	}
+	strcat(messageTosend,EndNote);
+	printf("messageTosend is %s\n", messageTosend);
+}
+
+
+
+
+void splitTheMessage(char*command, char*splitedMessage[]){
+	char *p = strtok (command, " ");
+   	int i=0;
+    while (p != NULL)
+    {
+        splitedMessage[i++] = p;
+        p = strtok (NULL, " ");
+    }	
+}
+
 int oldUserNameNotValidPassWord(int client_socket, char* messageReceive){
 	char messageToCompare[1000]="";
 	if(readCharacter(client_socket, messageReceive)==-1) return -1;
